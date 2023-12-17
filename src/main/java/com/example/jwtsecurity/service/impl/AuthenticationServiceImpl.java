@@ -1,5 +1,6 @@
 package com.example.jwtsecurity.service.impl;
 
+import com.example.jwtsecurity.dto.request.ChangePasswordRequest;
 import com.example.jwtsecurity.dto.request.RefreshTokenRequest;
 import com.example.jwtsecurity.dto.request.SignInRequest;
 import com.example.jwtsecurity.dto.request.SignUpRequest;
@@ -15,6 +16,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.security.Principal;
 import java.util.HashMap;
 
 @Service
@@ -59,7 +61,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 //        return jwtAuthenticationResponse;
 ////        comete aldigim her shey ishleyir sadece builderi sinayirdim
 
-        return JwtAuthenticationResponse.builder().token(jwt).refreshToken(refreshToken).build();
+        return JwtAuthenticationResponse.builder().accessToken(jwt).refreshToken(refreshToken).build();
 
     }
 
@@ -69,10 +71,27 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         if (jwtService.isTokenValid(request.getToken(), user)) {
             var jwt = jwtService.generateToken(user);
 
-            return JwtAuthenticationResponse.builder().token(jwt).refreshToken(request.getToken()).build();
+            return JwtAuthenticationResponse.builder().accessToken(jwt).refreshToken(request.getToken()).build();
         }
         return null;
 
     }
 
+    @Override
+    public void change(Principal principal, ChangePasswordRequest request) {
+        var user = (User) ((UsernamePasswordAuthenticationToken) principal).getPrincipal();
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new IllegalStateException("Wrong password");
+        }
+        if (!request.getNewPassword().equals(request.getConfirmationPassword())) {
+            throw new IllegalStateException("Password ane not same");
+        }
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+
+    }
+
+
 }
+
+
